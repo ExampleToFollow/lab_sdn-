@@ -1,5 +1,39 @@
 import yaml
-import beans
+
+class Alumno:
+    def __init__(self, nombre, codigo, mac):
+        self.nombre = nombre
+        self.codigo = codigo
+        self.mac = mac
+
+class Servicio:
+    def __init__(self, nombre, protocolo, puerto):
+        self.nombre = nombre
+        self.protocolo = protocolo
+        self.puerto = puerto
+
+class Servidor:
+    def __init__(self, nombre, direccion_ip, servicios=None):
+        self.nombre = nombre
+        self.direccion_ip = direccion_ip
+        self.servicios = []
+
+class Curso:
+    def __init__(self, nombre, estado,alumnos, servidores):
+        self.nombre = nombre
+        self.estado = estado
+        self.alumnos = alumnos
+        self.servidores = servidores
+    def agregar_alumno(self, alumno):
+        self.alumnos.append(alumno)
+    def remover_alumno(self, alumno):
+        self.alumnos = [a for a in self.alumnos if a.nombre != alumno.nombre]
+    def añadir_servidor(self, servidor):
+        self.servidores.append(servidor)
+
+
+
+
 def cargar_datos(filename):
     with open(filename, 'r') as file:
         return yaml.safe_load(file)
@@ -25,10 +59,13 @@ def imprimir_menu_crud():
     print("")
 
 #CRUD DE CURSOS
+
+
 def listar_curso(data):
     print("Cursos registrados:")
     for curso in data["cursos"]:
         print(f"- {curso['nombre']} (Código: {curso['codigo']}, Estado: {curso['estado']})")
+
 def mostrar_detalle_curso():
     print("")
 
@@ -40,7 +77,8 @@ def delete_curso():
 
 def crear_curso():
     print("")
-    
+
+#Hola
 def menu():
     filename = ""
     data  =  ""
@@ -62,27 +100,7 @@ def menu():
         elif opcion =="3" : 
             #Cursos
             if(data!=""):
-                imprimir_menu_crud()
-                opcion_crud_cursos = input("Seleccione una opción: ")
-                if(opcion_crud_cursos =="1") : 
-                    #Crear curso
-                    crear_curso()
-                elif(opcion_crud_cursos =="2"):
-                    #Listar curso
-                    listar_curso(data)
-                elif(opcion_crud_cursos =="3"):
-                    #Mostrar detalle
-                    mostrar_detalle_curso()
-                elif(opcion_crud_cursos =="4"):
-                    #Actualizar
-                    actualizar_curso()
-                elif(opcion_crud_cursos =="5"):
-                    #Borrar
-                    delete_curso()
-                elif(opcion_crud_cursos =="6"):
-                    continue
-                else:
-                    print("Ingresa algo con sentido")
+                
                     
             else:
                 print("Debe importar datos")
