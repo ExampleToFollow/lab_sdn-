@@ -100,8 +100,7 @@ def menu():
         elif opcion =="3" : 
             #Cursos
             if(data!=""):
-                
-                    
+                print("")
             else:
                 print("Debe importar datos")
         elif opcion =="4" : 
