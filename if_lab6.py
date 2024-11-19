@@ -1,25 +1,23 @@
 import yaml
 global alumnos_global
 alumnos_global = []
-#CLASES
+global cursos_global
+cursos_global = []
 class Alumno:
     def __init__(self, nombre, codigo, mac):
         self.nombre = nombre
         self.codigo = codigo
         self.mac = mac
-
 class Servicio:
     def __init__(self, nombre, protocolo, puerto):
         self.nombre = nombre
         self.protocolo = protocolo
         self.puerto = puerto
-
 class Servidor:
     def __init__(self, nombre, direccion_ip, servicios=None):
         self.nombre = nombre
         self.direccion_ip = direccion_ip
         self.servicios = []
-
 class Curso:
     def __init__(self, nombre, estado,alumnos, servidores,codigo):
         self.nombre = nombre
@@ -33,12 +31,25 @@ class Curso:
         self.alumnos = [a for a in self.alumnos if a.nombre != alumno.nombre]
     def añadir_servidor(self, servidor):
         self.servidores.append(servidor)
-
-#
+class Servidor_DTO:
+    def __init__(self, nombre, servicios_permitidos=None):
+        self.nombre = nombre
+        self.servicios_permitidos = servicios_permitidos
 def cargar_datos(filename):
     with open('database.yaml','r') as f:
         data = yaml.safe_load(f)
         #Guardar a los alumnos:
+        for curso in data.get('cursos',[]):
+            alumnitos = []
+            for a in curso.get("alumnos"):
+                alumnitos.append(str(a))
+            servidores = []
+            for s in curso.get("servidores"):
+                servicios_server= []
+                for k in s.get('servicios_permitidos'):
+                    servicios_server.append(k)
+                servidores.append(Servidor_DTO(s.get('nombre'),servicios_server))
+            cursos_global.append(Curso(curso.get('nombre'),curso.get('estado'),alumnitos, servidores,curso.get('codigo')))
         for alumno in data.get('alumnos',[]):
             alumnos_global.append(Alumno(alumno.get('nombre'),alumno.get('codigo'),alumno.get('mac')))
     with open(filename, 'r') as file:
@@ -69,15 +80,16 @@ def imprimir_menu_crud():
 def menu_crud_cursos(filename):
     while True:
         imprimir_menu_crud()
-        opcion_curso = input(">>Ingrese una opcion")
+        print("Ingrese una opcion: ")
+        opcion_curso = input(">>")
         if opcion_curso == "1":
             crear_curso(filename)
         elif opcion_curso=="2":
-            listar_curso(cargar_datos(filename))
+            listar_curso()
         elif opcion_curso=="3":
-            mostrar_detalle_curso(filename)
+            mostrar_detalle_curso()
         elif opcion_curso=="4":
-            actualizar_curso(filename)
+            actualizar_curso()
         elif opcion_curso=="5":
             borrar_curso(filename)
         elif opcion_curso=="6":
@@ -85,17 +97,73 @@ def menu_crud_cursos(filename):
         else :
             print("Debes poner una opcion valida")
 
-
-def listar_curso(data):
-    print("Cursos registrados:")
-    for curso in data["cursos"]:
-        print(f"- {curso['nombre']} (Código: {curso['codigo']}, Estado: {curso['estado']})")
+def listar_curso():
+    for curso in cursos_global:
+        print(f"- {curso.nombre} ")
 
 def mostrar_detalle_curso():
-    print("")
-
+    print("Ingrese el codigo del curso")
+    codigo = input(">>")
+    counter =0
+    for i in cursos_global:
+        if i.codigo == codigo:
+            counter = counter+1
+            print(f"- Nombre del curso : {i.nombre}")
+            print(f"- Estado : {i.estado}")
+            print(f"- Alumnos : ")
+            for j in i.alumnos:
+                for k in alumnos_global:
+                    if j ==  k.codigo:
+                        print(f"    -{k.nombre} ")
+            print("Servidores: ")
+            for j in i.servidores:
+                print(f"     -{j.nombre}")
+                print(f"     -Servicios_permitidos:")
+                for k in j.servicios_permitidos:
+                    print(f"                    -{k}")
+    if counter==0:
+        print("No se encontró algún curso con ese codigo")
 def actualizar_curso():
-    print("")
+    #Solo agrega o elimina alumno 
+    while True:
+        print("Ingresa el código del curso")
+        code = input(">>")
+        master_counter= 0
+        for i in cursos_global:
+            if i.codigo == code: 
+                master_counter = master_counter +1
+                print("Agregar (A) o Eliminar (E) un alumnos: ")
+                opcion =  input(">> ")
+                if opcion =="A" :
+                    print("Ingresa el código del alumno a añadir:")
+                    codigo = input(">>")
+                    if(validate_alumno_existe_codigo(codigo)):
+                        #Agregamos este codigo
+                        i.alumnos.append(int(codigo))
+                        print(f"Se agrego a alumno con codigo {codigo}")
+                    else:
+                        print("No existe este alumno")
+                elif opcion =="E":
+                    print("Ingresa el código del alumno a eliminar:")
+                    codigo = input(">>")
+                    ACounter= 0 
+                    for j in i.alumnos:
+                        if(j == int (codigo)):
+                            ACounter = ACounter +1
+                            i.alumnos.remove(int(codigo))
+                    if(ACounter >0):
+                        print("Se elimino correctamente al alumno")
+                        break;    
+                    else:
+                        print("No se encontró al alumno")
+                else:
+                    print("debes ingresar una opcion valida")
+                break
+        if master_counter == 0:
+            print("No se encontró ningun curso con ese codigo")
+        else : 
+            break
+        
 
 def delete_curso():
     print("")
@@ -155,14 +223,12 @@ def crear_curso(filename):
         servidor = l.split("-")[0]
         servs = l.split("/")[1:]
 
-
 def validar_servicios_Servidor(servicios , filename):
     data = cargar_datos(filename)
     for i in data.get("servidores").get("servicios"):
         if(i.nombre!=servicios):
             return False
     return True
-        
 
 def validate_codigo_curso(codigo, data):
     cursos = data.get('cursos',[])
@@ -170,14 +236,18 @@ def validate_codigo_curso(codigo, data):
         if cu.codigo == codigo:
             return False
     return True
-    
+def validate_alumno_existe_codigo(code):
+    for i in alumnos_global:
+        if i.codigo ==  int(code):
+            return True
+    return False
+
 def validate_nombre_curso(nombre, data):
     cursos = data.get('cursos',[])
     for cu in cursos:
         if cu.nombre == nombre:
             return False
     return True
-
 def alumno_existe(filename , codigo):
     data =cargar_datos(filename)
     alumnos =  data.get('alumnos')
@@ -185,7 +255,6 @@ def alumno_existe(filename , codigo):
         if (str(A.codigo)) == codigo:
             return True
     return False
-
 def existe_servidor(filename, nombre):
     data =cargar_datos(filename)
     servidores =  data.get('servidores')
@@ -195,7 +264,6 @@ def existe_servidor(filename, nombre):
     return False
 def borrar_curso():
     print("")
-
 def menu():
     filename = ""
     data  =  ""
@@ -246,8 +314,6 @@ def menu():
         else:
             print("Ingresa algo correcto")
             continue
-            
-
 #CRUD ALUMNO-----------------------------------------------
 #----------------------------------------------------------
 def listar_alumnos():
@@ -257,7 +323,7 @@ def listar_alumnos():
         print('\nLista de alumnos:')
         for alumno in alumnos_global:
             print('-'+alumno.nombre)
-           
+
 def listar_alumnos_filtros():
     if len(alumnos_global) == 0:
         print('Los datos de los alumnos no han sido importados o no hay alumnos registrados.')
@@ -272,7 +338,7 @@ def listar_alumnos_filtros():
                 contador += 1
         if contador == 0:
             print('\nNo se encontraron alumnos con ese nombre.')
-       
+
 def mostrar_detalles_alumno():
     if len(alumnos_global) == 0:
         print('Los datos de los alumnos no han sido importados o no hay alumnos registrados.')
@@ -286,7 +352,7 @@ def mostrar_detalles_alumno():
                 print(f'MAC: {alumno.mac}')
                 return
         print('\nNo se encontró ningún alumno con ese código.')
-       
+
 def agregar_alumno(alumno):
         for al in alumnos_global:
             if al.codigo == alumno.codigo:
@@ -299,8 +365,6 @@ def agregar_alumno(alumno):
                     print('Ya existe un alumno con esta MAC.')
                 else:
                     alumnos_global.append(alumno)
-
-
 def registrar_alumno():
     nombre = input('Ingresa el nombre del alumno: ')
    
@@ -333,7 +397,6 @@ def registrar_alumno():
     print(f'Nombre: {nombre}')
     print(f'Código: {codigo}')
     print(f'MAC: {mac}')
-   
 def menu_alumnos():
     while True:
         print('\n|----------------------------------------|')
@@ -361,15 +424,12 @@ def menu_alumnos():
 #CRUD ALUMNO-----------------------------------------------
 #----------------------------------------------------------
 
-
 #CRUD SERVIDORES--------------------------------------------
 #----------------------------------------------------------
 def listar_servidores(data):
     print("Servidores registrados:")
     for servidor in data.get("servidores", []):
         print(f"- Nombre: {servidor['nombre']}, IP: {servidor['ip']}")
-
-
 def mostrar_detalle_servidor(data, nombre_servidor):
     servidores = data.get("servidores", [])
     servidor = next((s for s in servidores if s['nombre'] == nombre_servidor), None)
@@ -383,7 +443,6 @@ def mostrar_detalle_servidor(data, nombre_servidor):
             print(f"      Puerto: {servicio['puerto']}")
     else:
         print(f"Servidor '{nombre_servidor}' no encontrado.")      
-
 def crud_servidores(data):
     while True:
         imprimir_menu_crud()
@@ -396,11 +455,7 @@ def crud_servidores(data):
         elif opcion == "6":
             break
         else:
-            print("Opción no válida. Intente nuevamente.")    
-    
-
-
-
+            print("Opción no válida. Intente nuevamente.")
 #CRUD SERVIDORES--------------------------------------------
 #----------------------------------------------------------
 if __name__ == "__main__":
